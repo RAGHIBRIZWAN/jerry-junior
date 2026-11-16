@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+backend/uploads/
+dist/
+logs/
+*.log
+.DS_Store
+.vercel
+backend/backups/
+backend/uploads_migrated_backup*/

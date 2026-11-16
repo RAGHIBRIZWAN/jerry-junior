@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop Admin</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- LOGIN -->
+  <section id="login-view" class="login hidden">
+    <form id="login-form" class="card login-card">
+      <h1>Shop Admin</h1>
+      <p class="muted">This panel only works on this laptop.</p>
+      <label>Username <input name="username" autocomplete="username" required></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn btn-primary" type="submit">Log in</button>
+      <p id="login-error" class="error"></p>
+    </form>
+  </section>
+
+  <!-- APP -->
+  <div id="app-view" class="hidden">
+    <header class="topbar">
+      <strong id="shop-name">Shop</strong> <span class="muted">Admin</span>
+      <nav class="tabs">
+        <button data-tab="orders" class="tab active">Orders <span id="pending-badge" class="badge hidden"></span></button>
+        <button data-tab="products" class="tab">Products</button>
+        <button data-tab="banners" class="tab">Banners</button>
+      </nav>
+      <button id="logout" class="btn btn-ghost">Log out</button>
+    </header>
+
+    <main>
+      <!-- ORDERS -->
+      <section id="orders-tab">
+        <div class="toolbar">
+          <div class="filters">
+            <button class="chip active" data-status="">All <span data-count="all"></span></button>
+            <button class="chip" data-status="pending">Pending <span data-count="pending"></span></button>
+            <button class="chip" data-status="confirmed">Confirmed <span data-count="confirmed"></span></button>
+            <button class="chip" data-status="cancelled">Cancelled <span data-count="cancelled"></span></button>
+          </div>
+          <button id="refresh-orders" class="btn btn-ghost">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table class="orders">
+            <thead>
+              <tr><th>Order</th><th>Buyer</th><th>Address</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="orders-body"></tbody>
+          </table>
+        </div>
+        <p id="orders-empty" class="muted center hidden">No orders here yet.</p>
+      </section>
+
+      <!-- PRODUCTS -->
+      <section id="products-tab" class="hidden">
+        <div class="products-layout">
+          <form id="product-form" class="card">
+            <h2 id="form-title">Add product</h2>
+            <label>Name * <input name="title" required maxlength="200"></label>
+            <label>Description <textarea name="caption" rows="3" maxlength="4000"></textarea></label>
+            <div class="row">
+              <label>Price (<span class="currency">PKR</span>) * <input name="price" type="number" min="0" step="1" required></label>
+              <label>Category <input name="category" list="category-list" placeholder="e.g. Boys, Girls, Baby"></label>
+              <datalist id="category-list"></datalist>
+            </div>
+            <label>Sizes <input name="sizes" placeholder="Comma separated, e.g. 2-3Y, 4-5Y, 6-7Y (leave empty if none)"></label>
+            <div class="row">
+              <label class="check"><input type="checkbox" name="inStock" checked> In stock</label>
+              <label class="check"><input type="checkbox" name="published" checked> Show on website</label>
+              <label class="check"><input type="checkbox" name="newArrival"> New arrival</label>
+            </div>
+
+            <label>Photos (JPG, PNG, WEBP, max 5MB each)
+              <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+            </label>
+            <p class="muted small">Click a photo to make it the cover. The cover is shown first on the website.</p>
+            <div id="image-previews" class="previews"></div>
+
+            <label>Videos (MP4, WEBM, MOV, max 50MB each)
+              <input id="video-input" type="file" accept="video/mp4,video/webm,video/quicktime" multiple>
+            </label>
+            <div id="video-previews" class="previews"></div>
+
+            <div class="row">
+              <button id="save-product" class="btn btn-primary" type="submit">Save product</button>
+              <button id="cancel-edit" class="btn btn-ghost hidden" type="button">Cancel edit</button>
+            </div>
+            <p id="product-error" class="error"></p>
+          </form>
+
+          <div>
+            <div class="toolbar">
+              <h2>All products <span id="product-count" class="muted"></span></h2>
+              <div class="filters">
+                <button class="chip active" data-pfilter="">All</button>
+                <button class="chip" data-pfilter="live">On website</button>
+                <button class="chip" data-pfilter="draft">Drafts <span id="draft-count"></span></button>
+              </div>
+              <input id="product-search" type="search" placeholder="Search products" class="search-input">
+            </div>
+            <div id="product-list" class="product-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BANNERS -->
+      <section id="banners-tab" class="hidden">
+        <div class="products-layout">
+          <form id="banner-form" class="card">
+            <h2>Add banner</h2>
+            <p class="muted small">These pictures slide on the top of the home page. They are separate from products, so you can change them any time (new season, sale, Eid...). Best size: <b>1280 &times; 487</b> pixels (wide). JPG, PNG or WEBP, max 8MB.</p>
+            <label>Banner picture *
+              <input id="banner-file" type="file" accept="image/jpeg,image/png,image/webp" required>
+            </label>
+            <div id="banner-preview" class="banner-preview hidden"></div>
+            <label>Click goes to (optional)
+              <input name="link" placeholder="e.g. /shop?new=1 or /shop?category=Boys" maxlength="500">
+            </label>
+            <p class="muted small">Leave empty for no link. Use <code>/shop?new=1</code> for New Arrivals, <code>/shop</code> for everything, or a full <code>https://</code> address.</p>
+            <label class="check"><input type="checkbox" name="active" checked> Show on website</label>
+            <button id="save-banner" class="btn btn-primary" type="submit">Add banner</button>
+            <p id="banner-error" class="error"></p>
+          </form>
+
+          <div>
+            <h2>Banners <span id="banner-count" class="muted"></span></h2>
+            <p class="muted small">The first one is shown first. Use the arrows to change the order.</p>
+            <div id="banner-list" class="banner-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
