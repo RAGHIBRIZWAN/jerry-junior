@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import useApi from '../lib/useApi';
-import { thumbUrl } from '../lib/api';
+import { errorDetail, thumbUrl } from '../lib/api';
 import { useShop } from '../context/ShopContext';
 import { ProductGrid } from '../components/ProductCard';
 import OfflineNotice from '../components/OfflineNotice';
@@ -17,7 +17,7 @@ export default function Home() {
   // Products you ticked "New arrival" for in the admin panel
   const newArrivals = list.filter((p) => p.newArrival);
 
-  if (products.offline) return <OfflineNotice onRetry={products.retry} />;
+  if (products.offline) return <OfflineNotice onRetry={products.retry} detail={errorDetail(products.error)} />;
 
   return (
     <>

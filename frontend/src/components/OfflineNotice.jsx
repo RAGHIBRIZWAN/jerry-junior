@@ -1,6 +1,6 @@
 import { useShop } from '../context/ShopContext';
 
-export default function OfflineNotice({ onRetry, message }) {
+export default function OfflineNotice({ onRetry, message, detail }) {
   const { chatUrl } = useShop();
   const wa = chatUrl();
   return (
@@ -20,6 +20,7 @@ export default function OfflineNotice({ onRetry, message }) {
           </a>
         )}
       </div>
+      {detail && <p className="mt-6 break-words text-[11px] text-stone-400">Details: {detail}</p>}
     </div>
   );
 }

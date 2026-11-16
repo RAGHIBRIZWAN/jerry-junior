@@ -10,7 +10,7 @@ import ProductCard from '../components/ProductCard';
 import Seo from '../components/Seo';
 import { ChevronDown, WhatsAppIcon } from '../components/Icons';
 import { money } from '../lib/format';
-import { errorMessage, mediaUrl, productMedia } from '../lib/api';
+import { errorDetail, errorMessage, mediaUrl, productMedia } from '../lib/api';
 import { SITE_URL } from '../config';
 import NotFound from './NotFound';
 
@@ -26,7 +26,7 @@ export default function ProductDetail() {
   const [sizeError, setSizeError] = useState(false);
   const media = useMemo(() => productMedia(product), [product]);
 
-  if (offline) return <OfflineNotice onRetry={retry} />;
+  if (offline) return <OfflineNotice onRetry={retry} detail={errorDetail(error)} />;
   if (error?.response?.status === 404) return <NotFound what="product" />;
   if (error)
     return (

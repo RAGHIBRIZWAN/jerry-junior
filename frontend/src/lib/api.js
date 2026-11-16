@@ -21,6 +21,15 @@ export function isOfflineError(err) {
   return status >= 400 && type.includes('text/html');
 }
 
+/** Short technical reason, e.g. "503: Database unavailable". Shown in small print on the offline notice. */
+export function errorDetail(err) {
+  if (!err) return '';
+  if (!err.response) return 'No answer from the server (network error)';
+  const d = err.response.data;
+  const text = typeof d === 'object' && d?.error ? `${d.error}${d.missing?.length ? ` (missing: ${d.missing.join(', ')})` : ''}` : 'unexpected reply';
+  return `${err.response.status}: ${text}`;
+}
+
 export function errorMessage(err, fallback = 'Something went wrong. Please try again.') {
   if (isOfflineError(err)) return 'Shop is temporarily offline, please try again shortly.';
   return err?.response?.data?.error || fallback;

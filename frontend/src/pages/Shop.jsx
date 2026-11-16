@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import useApi from '../lib/useApi';
 import { ProductGrid } from '../components/ProductCard';
 import OfflineNotice from '../components/OfflineNotice';
+import { errorDetail } from '../lib/api';
 import Seo from '../components/Seo';
 import { CloseIcon, FilterIcon, SearchIcon } from '../components/Icons';
 import { useLockScroll } from '../components/Header';
@@ -128,7 +129,7 @@ export default function Shop() {
           <aside className="hidden lg:block">{filters}</aside>
           <div>
             {products.offline ? (
-              <OfflineNotice onRetry={products.retry} />
+              <OfflineNotice onRetry={products.retry} detail={errorDetail(products.error)} />
             ) : products.error ? (
               <p className="py-16 text-center text-stone-500">Could not load products. Please refresh the page.</p>
             ) : !products.loading && !shown.length ? (
