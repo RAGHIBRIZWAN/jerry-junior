@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useShop } from '../context/ShopContext';
 import { ANNOUNCEMENTS } from '../config';
 import Logo from './Logo';
 import { BagIcon, CloseIcon, MenuIcon, SearchIcon } from './Icons';
@@ -24,7 +23,6 @@ function AnnouncementBar() {
 
 export default function Header() {
   const { count, openCart } = useCart();
-  const { categories } = useShop();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
@@ -38,7 +36,6 @@ export default function Header() {
     { to: '/', label: 'Home', end: true },
     { to: '/shop', label: 'Shop All', end: true },
     { to: '/shop?new=1', label: 'New Arrivals' },
-    ...categories.slice(0, 5).map((c) => ({ to: `/shop?category=${encodeURIComponent(c)}`, label: c })),
   ];
 
   return (
@@ -51,7 +48,7 @@ export default function Header() {
               <MenuIcon className="h-6 w-6" />
             </button>
             <nav className="hidden items-center gap-7 lg:flex">
-              {nav.slice(0, 4).map((n) => (
+              {nav.map((n) => (
                 <NavItem key={n.to} {...n} />
               ))}
             </nav>
@@ -62,11 +59,6 @@ export default function Header() {
           </Link>
 
           <div className="flex items-center justify-end gap-1 sm:gap-3">
-            <nav className="mr-4 hidden items-center gap-7 xl:flex">
-              {nav.slice(4).map((n) => (
-                <NavItem key={n.to} {...n} />
-              ))}
-            </nav>
             <button className="p-2" onClick={() => setSearchOpen(true)} aria-label="Search">
               <SearchIcon className="h-6 w-6" />
             </button>

@@ -11,6 +11,7 @@ import { checkCredentials, issueToken, clearToken, requireAdmin } from './auth.j
 import productsRouter from './routes/products.js';
 import ordersRouter from './routes/orders.js';
 import bannersRouter from './routes/banners.js';
+import categoriesRouter from './routes/categories.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,6 +75,7 @@ export function createAdminApp() {
   app.use('/admin/api/products', requireAdmin, productsRouter);
   app.use('/admin/api/orders', requireAdmin, ordersRouter);
   app.use('/admin/api/banners', requireAdmin, bannersRouter);
+  app.use('/admin/api/categories', requireAdmin, categoriesRouter);
   app.use('/admin/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
   // The admin UI itself (photos are loaded from Cloudinary).

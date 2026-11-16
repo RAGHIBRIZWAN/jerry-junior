@@ -96,7 +96,8 @@ $('#logout').addEventListener('click', async () => {
 $$('.tab').forEach((btn) =>
   btn.addEventListener('click', () => {
     $$('.tab').forEach((b) => b.classList.toggle('active', b === btn));
-    for (const name of ['orders', 'products', 'banners']) $(`#${name}-tab`).classList.toggle('hidden', btn.dataset.tab !== name);
+    for (const name of ['orders', 'products', 'banners', 'categories']) $(`#${name}-tab`).classList.toggle('hidden', btn.dataset.tab !== name);
+    if (btn.dataset.tab === 'categories') loadCategories();
     if (btn.dataset.tab === 'orders') loadOrders();
     if (btn.dataset.tab === 'banners') loadBanners();
   })
@@ -539,6 +540,75 @@ $('#banner-list').addEventListener('click', async (e) => {
         break;
     }
     loadBanners();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+
+// ---------------- Category photos ----------------
+let categories = [];
+let pickingFor = null; // category name waiting for a photo
+
+async function loadCategories() {
+  try {
+    categories = await api('/categories');
+    renderCategories();
+  } catch (err) {
+    if (err.status !== 401) toast(err.message, 'error');
+  }
+}
+
+function renderCategories() {
+  $('#category-photos').innerHTML =
+    categories
+      .map(
+        (c) => `<div class="category-card">
+      <div class="circle">${c.image ? `<img src="${esc(safeUrl(thumb(c.image, 300)))}" alt="">` : esc(c.name.charAt(0).toUpperCase())}</div>
+      <b>${esc(c.name)}</b>
+      <div class="muted small">${c.products} product(s)</div>
+      <div class="btns">
+        <button class="btn btn-primary btn-sm" data-caction="pick" data-name="${esc(c.name)}">${c.image ? 'Change photo' : 'Add photo'}</button>
+        ${c.image ? `<button class="btn btn-red btn-sm" data-caction="remove" data-name="${esc(c.name)}">Remove</button>` : ''}
+      </div>
+    </div>`
+      )
+      .join('') || '<p class="muted">No categories yet. Add a product with a category (for example Boys) and it will appear here.</p>';
+}
+
+$('#category-photos').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-caction]');
+  if (!btn) return;
+  const name = btn.dataset.name;
+  if (btn.dataset.caction === 'pick') {
+    pickingFor = name;
+    $('#category-file').click();
+    return;
+  }
+  if (!confirm(`Remove the photo of "${name}"? The home page will show a letter instead.`)) return;
+  try {
+    await api(`/categories?name=${encodeURIComponent(name)}`, { method: 'DELETE' });
+    toast('Photo removed', 'success');
+    loadCategories();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+
+$('#category-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file || !pickingFor) return;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    return toast('Photo must be a JPG, PNG or WEBP image up to 5MB', 'error');
+  }
+  const fd = new FormData();
+  fd.append('name', pickingFor);
+  fd.append('image', file, file.name);
+  toast('Uploading…');
+  try {
+    await api('/categories', { method: 'POST', form: fd });
+    toast('Category photo saved', 'success');
+    loadCategories();
   } catch (err) {
     toast(err.message, 'error');
   }

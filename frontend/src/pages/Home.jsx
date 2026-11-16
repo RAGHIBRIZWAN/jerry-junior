@@ -1,19 +1,18 @@
 import { Link } from 'react-router-dom';
 import useApi from '../lib/useApi';
-import { errorDetail, thumbUrl } from '../lib/api';
+import { errorDetail, mediaUrl } from '../lib/api';
 import { useShop } from '../context/ShopContext';
 import { ProductGrid } from '../components/ProductCard';
 import OfflineNotice from '../components/OfflineNotice';
 import Seo from '../components/Seo';
-import { ChatIcon, FacebookIcon, ShirtIcon, SparkleIcon, TruckIcon } from '../components/Icons';
+import { ChatIcon, FacebookIcon, InstagramIcon, ShirtIcon, SparkleIcon, TruckIcon } from '../components/Icons';
 import BannerCarousel from '../components/BannerCarousel';
-import { BRAND_NAME, FACEBOOK_URL } from '../config';
+import { BRAND_NAME, FACEBOOK_URL, INSTAGRAM_URL } from '../config';
 
 export default function Home() {
   const products = useApi('/products');
   const { categories } = useShop();
   const list = products.data || [];
-  const withPhotos = list.filter((p) => p.images?.length);
   // Products you ticked "New arrival" for in the admin panel
   const newArrivals = list.filter((p) => p.newArrival);
 
@@ -25,7 +24,7 @@ export default function Home() {
       <h1 className="sr-only">{BRAND_NAME}: kids wear in Karachi</h1>
       <BannerCarousel />
 
-      {categories.length > 0 && <Categories categories={categories} products={withPhotos} />}
+      {categories.length > 0 && <Categories categories={categories} />}
 
       {/* New Arrivals: only the products marked "New arrival" in admin */}
       {(products.loading || newArrivals.length > 0) && (
@@ -77,7 +76,8 @@ export default function Home() {
   );
 }
 
-function Categories({ categories, products }) {
+// Each tile uses the photo you chose in the admin panel (Category photos). Without one it shows the first letter.
+function Categories({ categories }) {
   return (
     <section className="container-x mt-16 sm:mt-20">
       <div className="mb-8 text-center">
@@ -85,17 +85,18 @@ function Categories({ categories, products }) {
         <h2 className="section-title mt-2">Shop by Category</h2>
       </div>
       <div className="no-scrollbar -mx-4 flex justify-start gap-5 overflow-x-auto px-4 sm:justify-center sm:gap-10">
-        {categories.map((c) => {
-          const p = products.find((x) => x.category === c);
-          return (
-            <Link key={c} to={`/shop?category=${encodeURIComponent(c)}`} className="group flex w-24 shrink-0 flex-col items-center sm:w-32">
-              <span className="block aspect-square w-full overflow-hidden rounded-full bg-sand ring-1 ring-stone-200 transition group-hover:ring-2 group-hover:ring-accent">
-                {p && <img src={thumbUrl(p.images[0])} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />}
-              </span>
-              <span className="mt-3 text-center text-xs uppercase tracking-[0.18em]">{c}</span>
-            </Link>
-          );
-        })}
+        {categories.map((c) => (
+          <Link key={c.name} to={`/shop?category=${encodeURIComponent(c.name)}`} className="group flex w-24 shrink-0 flex-col items-center sm:w-32">
+            <span className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-sand ring-1 ring-stone-200 transition group-hover:ring-2 group-hover:ring-accent">
+              {c.image ? (
+                <img src={mediaUrl(c.image, 400)} alt={c.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+              ) : (
+                <span className="font-display text-3xl text-ink sm:text-4xl">{c.name.charAt(0).toUpperCase()}</span>
+              )}
+            </span>
+            <span className="mt-3 text-center text-xs uppercase tracking-[0.18em]">{c.name}</span>
+          </Link>
+        ))}
       </div>
     </section>
   );
@@ -152,11 +153,18 @@ function FacebookBanner() {
     <section className="container-x mt-20 sm:mt-24">
       <div className="flex flex-col items-center gap-5 bg-sand px-6 py-12 text-center sm:py-16">
         <p className="eyebrow">Join the family</p>
-        <h2 className="section-title max-w-xl">Follow {BRAND_NAME} on Facebook</h2>
+        <h2 className="section-title max-w-xl">Follow {BRAND_NAME}</h2>
         <p className="max-w-md text-sm text-ink-soft">Be the first to see new arrivals, offers and restocks.</p>
-        <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="btn btn-dark mt-2">
-          <FacebookIcon className="h-4 w-4" /> Follow us
-        </a>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="btn btn-dark">
+            <FacebookIcon className="h-4 w-4" /> Follow on Facebook
+          </a>
+          {INSTAGRAM_URL && (
+            <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn btn-instagram">
+              <InstagramIcon className="h-4 w-4" /> Follow on Instagram
+            </a>
+          )}
+        </div>
       </div>
     </section>
   );

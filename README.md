@@ -176,7 +176,10 @@ Every `git push` redeploys the website. **Adding products does not need a deploy
 
 ## 7. Daily workflow
 
-1. **Add or edit products:** on your laptop run `npm start` in `backend`, open http://localhost:5001, then **Products** (photos, sizes, price; click a photo for the cover; tick **New arrival** to feature it) and **Banners** (home page slider).
+1. **Add or edit products:** on your laptop run `npm start` in `backend`, open http://localhost:5001, then use:
+   - **Products**: photos, sizes, price; click a photo for the cover; tick **New arrival** to feature it.
+   - **Banners**: the slider at the top of the home page.
+   - **Category photos**: the round pictures in *Shop by Category*. Pick the photo yourself for each category (Boys, Girls...) and change it whenever you get new products. A category appears there as soon as a product uses it; without a photo its tile shows the first letter.
 2. New or changed items appear on the live website within about a minute (the site caches for a few seconds).
 3. Press **Ctrl + C** to stop the backend. The shop keeps working.
 4. **When a WhatsApp order arrives:** reply to the buyer, then in the admin panel (**Orders**) press **Confirm order** (or **Cancel**). Orders placed while your backend was off are waiting in the Orders tab (pending ones are highlighted).
@@ -243,4 +246,6 @@ Every `git push` redeploys the website. **Adding products does not need a deploy
 - **Logo:** `frontend/public/logo.png`. **Default banner:** `frontend/public/banner-default.jpg` (used until you add banners in admin). **Share image:** `frontend/public/og-image.jpg` (1200×630).
 - **Colours:** the `@theme` block at the top of `frontend/src/index.css` (taken from the logo: navy, red, yellow).
 - **Top-bar messages, tagline, social links:** the `VITE_*` variables or `frontend/src/config.js`. Only list things that are true for your shop.
+- **Menu:** the top menu has Home, Shop All and New Arrivals. Categories are reached from the *Shop by Category* tiles, the footer and the filters on the Shop page.
+- **Instagram / Facebook buttons:** the "Follow" buttons near the bottom and the footer icons use `VITE_FACEBOOK_URL` and `VITE_INSTAGRAM_URL` (defaults are built in; set them to change).
 - WhatsApp and Facebook link previews can't read your JavaScript, so product links share the general shop image.

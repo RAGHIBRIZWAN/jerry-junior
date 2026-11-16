@@ -24,6 +24,12 @@ export async function saveBannerImage(input) {
   return uploadImage(buf, 'banners');
 }
 
+/** Category photo: square crop (it is shown in a circle), 600px. */
+export async function saveCategoryImage(input) {
+  const buf = await sharp(input, { failOn: 'error' }).rotate().resize(600, 600, { fit: 'cover', position: 'attention' }).webp({ quality: 82 }).toBuffer();
+  return uploadImage(buf, 'categories');
+}
+
 /** Deletes an uploaded image from Cloudinary. Ignores other addresses and missing images. */
 export async function deleteMedia(src) {
   await destroyByUrl(src);

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { TAGLINE, SOCIAL } from '../config';
 import { useShop } from '../context/ShopContext';
 import Logo from './Logo';
-import { FacebookIcon, WhatsAppIcon } from './Icons';
+import { FacebookIcon, InstagramIcon, WhatsAppIcon } from './Icons';
 
 export default function Footer() {
   const { whatsapp, chatUrl, city, categories, shopName } = useShop();
@@ -22,7 +22,7 @@ export default function Footer() {
                 aria-label={s.name}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-600 transition hover:border-accent hover:text-accent"
               >
-                {s.name === 'Facebook' ? <FacebookIcon className="h-5 w-5" /> : <span className="text-xs">{s.name[0]}</span>}
+                {s.name === 'Facebook' ? <FacebookIcon className="h-5 w-5" /> : s.name === 'Instagram' ? <InstagramIcon className="h-5 w-5" /> : <span className="text-xs">{s.name[0]}</span>}
               </a>
             ))}
             {whatsapp && (
@@ -41,9 +41,10 @@ export default function Footer() {
 
         <FooterCol title="Shop">
           <FooterLink to="/shop">Shop All</FooterLink>
+          <FooterLink to="/shop?new=1">New Arrivals</FooterLink>
           {categories.slice(0, 6).map((c) => (
-            <FooterLink key={c} to={`/shop?category=${encodeURIComponent(c)}`}>
-              {c}
+            <FooterLink key={c.name} to={`/shop?category=${encodeURIComponent(c.name)}`}>
+              {c.name}
             </FooterLink>
           ))}
         </FooterCol>

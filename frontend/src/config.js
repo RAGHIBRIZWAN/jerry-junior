@@ -14,9 +14,19 @@ export const SITE_URL = (env.VITE_SITE_URL || (typeof window !== 'undefined' ? w
 export const FALLBACK_WHATSAPP = (env.VITE_VENDOR_WHATSAPP || '').replace(/\D/g, '');
 
 export const FACEBOOK_URL = env.VITE_FACEBOOK_URL || 'https://www.facebook.com/people/Jerrys-Junior/61596077745640/';
+// Instagram page. Can be changed with VITE_INSTAGRAM_URL. Tracking parts like "?fbclid=..." are removed.
+const cleanUrl = (u) => {
+  try {
+    const x = new URL(u);
+    return `${x.origin}${x.pathname}`.replace(/\/$/, '');
+  } catch {
+    return '';
+  }
+};
+export const INSTAGRAM_URL = cleanUrl(env.VITE_INSTAGRAM_URL || 'https://www.instagram.com/jerryjunior711');
 export const SOCIAL = [
   { name: 'Facebook', url: FACEBOOK_URL },
-  { name: 'Instagram', url: env.VITE_INSTAGRAM_URL },
+  { name: 'Instagram', url: INSTAGRAM_URL },
   { name: 'TikTok', url: env.VITE_TIKTOK_URL },
 ].filter((s) => s.url);
 

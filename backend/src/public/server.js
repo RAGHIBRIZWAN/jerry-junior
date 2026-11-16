@@ -9,6 +9,7 @@ import config from '../config.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import Banner from '../models/Banner.js';
+import Category from '../models/Category.js';
 import { generateOrderNumber } from '../utils/orderNumber.js';
 import { vendorWhatsappUrl } from '../utils/whatsapp.js';
 
@@ -94,8 +95,21 @@ export function createPublicApp() {
   });
 
   app.get('/api/categories', async (req, res) => {
-    const cats = await Product.distinct('category', { ...VISIBLE, category: { $ne: '' } });
-    res.json(cats.sort((a, b) => a.localeCompare(b)));
+    // Categories that have at least one visible product, with the photo you set in the admin panel.
+    const [names, docs] = await Promise.all([
+      Product.distinct('category', { ...VISIBLE, category: { $ne: '' } }),
+      Category.find({}, { name: 1, key: 1, image: 1 }).lean(),
+    ]);
+    const byKey = new Map(docs.map((d) => [d.key, d]));
+    const seen = new Set();
+    const list = [];
+    for (const name of names.sort((a, b) => a.localeCompare(b))) {
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push({ name: byKey.get(key)?.name || name, image: byKey.get(key)?.image || '' });
+    }
+    res.json(list);
   });
 
   app.get('/api/products/:id', async (req, res) => {
