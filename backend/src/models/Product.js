@@ -6,7 +6,6 @@ const productSchema = new mongoose.Schema(
     caption: { type: String, trim: true, maxlength: 4000, default: '' },
     price: { type: Number, required: true, min: 0 },
     images: { type: [String], default: [] }, // first image is the cover
-    videos: { type: [String], default: [] },
     sizes: { type: [String], default: [] },
     category: { type: String, trim: true, default: '' },
     inStock: { type: Boolean, default: true },

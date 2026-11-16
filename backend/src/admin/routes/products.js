@@ -1,30 +1,24 @@
-import path from 'node:path';
 import { Router } from 'express';
 import multer from 'multer';
 import mongoose from 'mongoose';
 import Product from '../../models/Product.js';
-import { saveProductImage, saveProductVideo, deleteMedia, VIDEO_TYPES } from '../../utils/images.js';
+import { saveProductImage, deleteMedia } from '../../utils/images.js';
 
 const router = Router();
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_IMAGE = 5 * 1024 * 1024;
-const MAX_VIDEO = 50 * 1024 * 1024; // videos live in the free Atlas database (512MB), so keep them small
 
 const badRequest = (msg) => Object.assign(new Error(msg), { status: 400 });
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_VIDEO, files: 20 },
+  limits: { fileSize: MAX_IMAGE, files: 15 },
   fileFilter(req, file, cb) {
     if (file.fieldname === 'images' && IMAGE_TYPES.has(file.mimetype)) return cb(null, true);
-    if (file.fieldname === 'videos' && VIDEO_TYPES[file.mimetype]) return cb(null, true);
-    cb(badRequest(`"${file.originalname}" is not a supported file (photos: JPG/PNG/WEBP, videos: MP4/WEBM/MOV)`));
+    cb(badRequest(`"${file.originalname}" is not a supported photo (use JPG, PNG or WEBP)`));
   },
-}).fields([
-  { name: 'images', maxCount: 15 },
-  { name: 'videos', maxCount: 5 },
-]);
+}).array('images', 15);
 
 function parseFields(body) {
   const title = String(body.title || '').trim();
@@ -58,56 +52,41 @@ const parseList = (json) => {
 };
 
 /**
- * Works out the final image and video lists.
- * - existingImages / existingVideos: JSON arrays of current paths to keep (in order)
- * - uploaded files: new images / videos
- * - cover: "existing:<path>" or "new:<index>" -> that image moves to position 0
+ * Works out the final photo list.
+ * - existingImages: JSON array of current photo addresses to keep (in order)
+ * - uploaded files: new photos (sent to Cloudinary)
+ * - cover: "existing:<address>" or "new:<index>" -> that photo moves to position 0
  */
-async function buildMedia(body, files, previous = { images: [], videos: [] }) {
-  const newImages = files.images || [];
-  const newVideos = files.videos || [];
-  for (const f of newImages) if (f.size > MAX_IMAGE) throw badRequest(`"${f.originalname}" is bigger than 5MB`);
-
-  const keepImages = parseList(body.existingImages).filter((s) => previous.images.includes(s));
-  const keepVideos = parseList(body.existingVideos).filter((s) => previous.videos.includes(s));
+async function buildImages(body, files, previous = []) {
+  const keep = parseList(body.existingImages).filter((s) => previous.includes(s));
 
   const added = [];
   try {
-    for (const f of newImages) added.push(await saveProductImage(f.buffer));
+    for (const f of files) added.push(await saveProductImage(f.buffer));
   } catch (err) {
     await Promise.all(added.map(deleteMedia));
-    throw badRequest(`Could not read one of the photos: ${err.message}`);
+    throw err.status ? err : badRequest(`Could not read one of the photos: ${err.message}`);
   }
-  const addedVideos = [];
-  for (const f of newVideos) addedVideos.push(await saveProductVideo(f.buffer, path.extname(f.originalname) || VIDEO_TYPES[f.mimetype]));
 
-  const images = [...keepImages, ...added];
+  const images = [...keep, ...added];
   const cover = String(body.cover || '');
   let coverSrc;
   if (cover.startsWith('existing:')) coverSrc = cover.slice(9);
   else if (cover.startsWith('new:')) coverSrc = added[Number(cover.slice(4))];
   if (coverSrc && images.includes(coverSrc)) images.unshift(...images.splice(images.indexOf(coverSrc), 1));
 
-  return {
-    images,
-    videos: [...keepVideos, ...addedVideos],
-    added: [...added, ...addedVideos],
-    removed: [
-      ...previous.images.filter((s) => !keepImages.includes(s)),
-      ...previous.videos.filter((s) => !keepVideos.includes(s)),
-    ],
-  };
+  return { images, added, removed: previous.filter((s) => !keep.includes(s)) };
 }
 
 router.get('/', async (req, res) => {
-  res.json(await Product.find().sort({ createdAt: -1 }).lean());
+  res.json(await Product.find({}, { videos: 0 }).sort({ createdAt: -1 }).lean());
 });
 
 router.post('/', upload, async (req, res) => {
   const fields = parseFields(req.body);
-  const media = await buildMedia(req.body, req.files || {});
+  const media = await buildImages(req.body, req.files || []);
   try {
-    const product = await Product.create({ ...fields, images: media.images, videos: media.videos });
+    const product = await Product.create({ ...fields, images: media.images });
     res.status(201).json(product);
   } catch (err) {
     await Promise.all(media.added.map(deleteMedia));
@@ -121,8 +100,8 @@ router.put('/:id', upload, async (req, res) => {
   if (!product) return res.status(404).json({ error: 'Product not found' });
 
   const fields = parseFields(req.body);
-  const media = await buildMedia(req.body, req.files || {}, { images: product.images, videos: product.videos || [] });
-  Object.assign(product, fields, { images: media.images, videos: media.videos });
+  const media = await buildImages(req.body, req.files || [], product.images);
+  Object.assign(product, fields, { images: media.images });
   await product.save();
   await Promise.all(media.removed.map(deleteMedia));
   res.json(product);
@@ -148,12 +127,11 @@ router.delete('/:id', async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Product not found' });
   const product = await Product.findByIdAndDelete(req.params.id);
   if (!product) return res.status(404).json({ error: 'Product not found' });
-  // Old orders keep a snapshot that may point at the cover image. Keep images still used by an order.
+  // Old orders keep a snapshot that may point at the cover photo. Keep photos still used by an order.
   const Order = mongoose.model('Order');
   for (const src of product.images) {
     if (!(await Order.exists({ 'items.image': src }))) await deleteMedia(src);
   }
-  await Promise.all((product.videos || []).map(deleteMedia));
   res.json({ ok: true });
 });
 

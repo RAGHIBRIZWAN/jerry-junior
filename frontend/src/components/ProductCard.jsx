@@ -1,12 +1,9 @@
 import { Link } from 'react-router-dom';
-import { mediaUrl, thumbUrl } from '../lib/api';
+import { thumbUrl } from '../lib/api';
 import { money } from '../lib/format';
-import { PlayIcon } from './Icons';
 
 export default function ProductCard({ product }) {
   const [cover, second] = product.images || [];
-  const video = product.videos?.[0];
-  const hasVideo = (product.videos || []).length > 0;
 
   return (
     <Link to={`/product/${product._id}`} className="group block">
@@ -30,8 +27,6 @@ export default function ProductCard({ product }) {
               />
             )}
           </>
-        ) : video ? (
-          <video src={`${mediaUrl(video)}#t=0.5`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-xs uppercase tracking-widest text-stone-400">No photo</div>
         )}
@@ -40,11 +35,6 @@ export default function ProductCard({ product }) {
           {product.newArrival && <span className="bg-accent px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.15em] text-white">New</span>}
           {!product.inStock && <span className="bg-white px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.15em] text-ink">Sold out</span>}
         </div>
-        {hasVideo && (
-          <span className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-ink" title="Has video">
-            <PlayIcon className="ml-0.5 h-3.5 w-3.5" />
-          </span>
-        )}
         {product.inStock && (
           <span className="absolute inset-x-2.5 bottom-2.5 hidden translate-y-2 bg-white/95 py-2.5 text-center text-[11px] font-medium uppercase tracking-[0.2em] opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 sm:block">
             View product

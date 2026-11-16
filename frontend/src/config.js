@@ -1,7 +1,7 @@
 const env = import.meta.env;
 
-// Empty = same address as the website (Vercel serves the API at /api and photos at /media).
-// While developing, Vite forwards /api and /media to the local backend (see vite.config.js).
+// Empty = same address as the website (Vercel serves the API at /api; photos come from Cloudinary).
+// While developing, Vite forwards /api to the local backend (see vite.config.js).
 export const API_URL = (env.VITE_API_URL || '').replace(/\/$/, '');
 export const BRAND_NAME = env.VITE_BRAND_NAME || 'Jerrys Junior';
 export const TAGLINE = env.VITE_TAGLINE || 'Stylish, comfortable clothing for little ones';

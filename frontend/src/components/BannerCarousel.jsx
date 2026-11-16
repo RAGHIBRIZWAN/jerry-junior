@@ -10,7 +10,7 @@ const DEFAULT_BANNER = [{ _id: 'default', image: '/banner-default.jpg', link: ''
 const AUTOPLAY_MS = 5000;
 
 function Slide({ banner, eager }) {
-  const src = banner.image.startsWith('/media/') ? mediaUrl(banner.image) : banner.image;
+  const src = mediaUrl(banner.image, 1920); // Cloudinary sizes it; /banner-default.jpg is used as it is
   const img = (
     <img
       src={src}

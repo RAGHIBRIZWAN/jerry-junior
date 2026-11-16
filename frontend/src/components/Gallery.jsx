@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl, thumbUrl } from '../lib/api';
-import { ChevronLeft, ChevronRight, CloseIcon, PlayIcon } from './Icons';
+import { ChevronLeft, ChevronRight, CloseIcon } from './Icons';
 
 /** Swipe left/right on touch screens. */
 function useSwipe(onPrev, onNext) {
@@ -19,21 +19,7 @@ function useSwipe(onPrev, onNext) {
   };
 }
 
-function Thumb({ item }) {
-  if (item.type === 'video') {
-    return (
-      <span className="relative block h-full w-full bg-stone-800">
-        <video src={`${mediaUrl(item.src)}#t=0.5`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
-        <span className="absolute inset-0 flex items-center justify-center text-white">
-          <PlayIcon className="h-5 w-5 drop-shadow" />
-        </span>
-      </span>
-    );
-  }
-  return <img src={thumbUrl(item.src)} alt="" loading="lazy" className="h-full w-full object-cover" />;
-}
-
-/** media: [{ type: 'image' | 'video', src }] */
+/** media: [{ type: 'image', src }] */
 export default function Gallery({ media, title }) {
   const [index, setIndex] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
@@ -61,31 +47,18 @@ export default function Gallery({ media, title }) {
               type="button"
               onClick={() => setIndex(i)}
               className={`aspect-[3/4] w-16 shrink-0 overflow-hidden border transition lg:w-full ${i === index ? 'border-ink' : 'border-transparent opacity-60 hover:opacity-100'}`}
-              aria-label={`Show ${m.type} ${i + 1}`}
+              aria-label={`Show photo ${i + 1}`}
             >
-              <Thumb item={m} />
+              <img src={mediaUrl(m.src, 200)} alt="" loading="lazy" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
       )}
 
       <div className="relative flex-1 overflow-hidden bg-sand" {...swipe}>
-        {current.type === 'video' ? (
-          <video
-            key={current.src}
-            src={mediaUrl(current.src)}
-            controls
-            playsInline
-            autoPlay
-            muted
-            loop
-            className="aspect-[3/4] w-full bg-black object-contain"
-          />
-        ) : (
-          <button type="button" className="block aspect-[3/4] w-full cursor-zoom-in" onClick={() => setFullscreen(true)} aria-label="View full screen">
-            <img src={mediaUrl(current.src)} alt={`${title}, picture ${index + 1} of ${count}`} className="h-full w-full object-cover" draggable="false" />
-          </button>
-        )}
+        <button type="button" className="block aspect-[3/4] w-full cursor-zoom-in" onClick={() => setFullscreen(true)} aria-label="View full screen">
+          <img src={mediaUrl(current.src, 1000)} alt={`${title}, picture ${index + 1} of ${count}`} className="h-full w-full object-cover" draggable="false" />
+        </button>
 
         {count > 1 && (
           <>
@@ -151,19 +124,15 @@ function Lightbox({ media, index, setIndex, onClose, title }) {
         </button>
       </div>
       <div className="relative flex flex-1 items-center justify-center overflow-hidden" {...(zoom ? {} : swipe)}>
-        {item.type === 'video' ? (
-          <video key={item.src} src={mediaUrl(item.src)} controls autoPlay playsInline className="max-h-full max-w-full" />
-        ) : (
-          <img
-            src={mediaUrl(item.src)}
-            alt={`${title}, picture ${index + 1}`}
-            onClick={(e) => setZoom(zoom ? null : point(e))}
-            onPointerMove={(e) => zoom && e.pointerType !== 'touch' && setZoom(point(e))}
-            draggable="false"
-            className={`max-h-full max-w-full select-none object-contain transition-transform duration-200 ${zoom ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
-            style={zoom ? { transform: 'scale(2.2)', transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
-          />
-        )}
+        <img
+          src={mediaUrl(item.src, 1600)}
+          alt={`${title}, picture ${index + 1}`}
+          onClick={(e) => setZoom(zoom ? null : point(e))}
+          onPointerMove={(e) => zoom && e.pointerType !== 'touch' && setZoom(point(e))}
+          draggable="false"
+          className={`max-h-full max-w-full select-none object-contain transition-transform duration-200 ${zoom ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+          style={zoom ? { transform: 'scale(2.2)', transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
+        />
         {count > 1 && !zoom && (
           <>
             <button type="button" onClick={() => go(-1)} className="absolute left-3 rounded-full bg-stone-100 p-3 hover:bg-stone-200" aria-label="Previous">

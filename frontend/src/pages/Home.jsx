@@ -1,8 +1,6 @@
-import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import useApi from '../lib/useApi';
-import { mediaUrl, thumbUrl } from '../lib/api';
-import { money } from '../lib/format';
+import { thumbUrl } from '../lib/api';
 import { useShop } from '../context/ShopContext';
 import { ProductGrid } from '../components/ProductCard';
 import OfflineNotice from '../components/OfflineNotice';
@@ -16,7 +14,6 @@ export default function Home() {
   const { categories } = useShop();
   const list = products.data || [];
   const withPhotos = list.filter((p) => p.images?.length);
-  const withVideos = list.filter((p) => p.videos?.length);
   // Products you ticked "New arrival" for in the admin panel
   const newArrivals = list.filter((p) => p.newArrival);
 
@@ -73,8 +70,6 @@ export default function Home() {
         )}
       </section>
 
-      {withVideos.length > 0 && <VideoReel products={withVideos.slice(0, 10)} />}
-
       <Features />
       <HowToOrder />
       <FacebookBanner />
@@ -101,43 +96,6 @@ function Categories({ categories, products }) {
             </Link>
           );
         })}
-      </div>
-    </section>
-  );
-}
-
-function ReelVideo({ src }) {
-  const ref = useRef(null);
-  // Play only while visible, to save data on phones.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !('IntersectionObserver' in window)) return;
-    const io = new IntersectionObserver(([entry]) => (entry.isIntersecting ? el.play().catch(() => {}) : el.pause()), { threshold: 0.6 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return <video ref={ref} src={mediaUrl(src)} muted loop playsInline preload="metadata" className="h-full w-full object-cover" />;
-}
-
-function VideoReel({ products }) {
-  return (
-    <section className="mt-20 bg-ink py-16 text-white sm:mt-28">
-      <div className="container-x">
-        <div className="mb-8 text-center">
-          <p className="eyebrow">Watch &amp; shop</p>
-          <h2 className="section-title mt-2">See it in motion</h2>
-        </div>
-        <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-2">
-          {products.map((p) => (
-            <Link key={p._id} to={`/product/${p._id}`} className="group w-56 shrink-0 sm:w-64">
-              <div className="aspect-[9/16] overflow-hidden bg-stone-800">
-                <ReelVideo src={p.videos[0]} />
-              </div>
-              <p className="mt-3 line-clamp-1 text-sm">{p.title}</p>
-              <p className="text-sm text-stone-400">{money(p.price)}</p>
-            </Link>
-          ))}
-        </div>
       </div>
     </section>
   );

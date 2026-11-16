@@ -11,9 +11,11 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "seed": "node src/seed.js",
-    "import-facebook": "node src/importFacebook.js"
+    "import-facebook": "node src/importFacebook.js",
+    "upload-photos": "node src/uploadPhotos.js"
   },
   "dependencies": {
+    "cloudinary": "^2.11.0",
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

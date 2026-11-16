@@ -8,8 +8,13 @@ const esc = (s) =>
 let currency = 'PKR';
 const money = (n) => `${currency} ${Number(n || 0).toLocaleString('en-US')}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '');
-const thumb = (src) => (src && src.startsWith('/media/') && src.endsWith('.webp') ? src.replace(/\.webp$/, '-thumb.webp') : src || '');
-const safeUrl = (u) => (/^(https?:\/\/|\/media\/|blob:)/.test(u || '') ? u : '');
+// Photos live on Cloudinary; ask it for a smaller version to keep the panel fast.
+const CLD = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.+)$/;
+const thumb = (src, w = 400) => {
+  const m = CLD.exec(src || '');
+  return m ? `${m[1]}c_limit,w_${w},f_auto,q_auto/${m[2]}` : src || '';
+};
+const safeUrl = (u) => (/^(https?:\/\/|blob:)/.test(u || '') ? u : '');
 
 class ApiError extends Error {
   constructor(message, status, data) {
@@ -202,7 +207,6 @@ let productSearch = '';
 let editingId = null;
 // Each entry: { kind: 'existing', src } or { kind: 'new', file, url }
 let images = [];
-let videos = [];
 let coverIndex = 0;
 
 async function loadProducts() {
@@ -245,15 +249,14 @@ function renderProducts() {
       .map((p) => {
         const draft = p.published === false;
         const cover = safeUrl(thumb(p.images[0]));
-        const vids = (p.videos || []).length;
         return `<div class="product-card ${draft ? 'draft' : ''}">
-      ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy">` : vids ? `<video src="${esc(safeUrl(p.videos[0]))}#t=0.1" muted preload="metadata"></video>` : '<img alt="">'}
+      ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy">` : '<img alt="">'}
       <div class="body">
         ${draft ? '<span class="draft-tag">DRAFT: hidden from website</span>' : ''}
         ${p.newArrival ? '<span class="new-tag">NEW ARRIVAL</span>' : ''}
         <div class="title">${esc(p.title)}</div>
         <div>${p.price ? money(p.price) : '<b style="color:#dc2626">No price</b>'} ${p.category ? `· <span class="muted">${esc(p.category)}</span>` : ''}</div>
-        <div class="muted small">${p.images.length} photo(s)${vids ? ` · ${vids} video(s)` : ''}${p.sizes.length ? ` · ${esc(p.sizes.join(', '))}` : ''}</div>
+        <div class="muted small">${p.images.length} photo(s)${p.sizes.length ? ` · ${esc(p.sizes.join(', '))}` : ''}</div>
         ${p.inStock ? '' : '<div class="oos">SOLD OUT</div>'}
       </div>
       <div class="btns">
@@ -280,16 +283,6 @@ function renderPreviews() {
       </div>`;
     })
     .join('');
-  $('#video-previews').innerHTML = videos
-    .map((v, i) => {
-      const src = v.kind === 'new' ? v.url : v.src;
-      return `<div class="preview">
-        <video src="${esc(safeUrl(src))}#t=0.1" muted preload="metadata"></video>
-        <span class="vid-tag">VIDEO</span>
-        <button type="button" class="remove" data-remove-video="${i}" title="Remove">&times;</button>
-      </div>`;
-    })
-    .join('');
 }
 
 $('#image-input').addEventListener('change', (e) => {
@@ -303,22 +296,6 @@ $('#image-input').addEventListener('change', (e) => {
       continue;
     }
     images.push({ kind: 'new', file, url: URL.createObjectURL(file) });
-  }
-  e.target.value = '';
-  renderPreviews();
-});
-
-$('#video-input').addEventListener('change', (e) => {
-  for (const file of e.target.files) {
-    if (!['video/mp4', 'video/webm', 'video/quicktime'].includes(file.type)) {
-      toast(`${file.name}: only MP4, WEBM or MOV`, 'error');
-      continue;
-    }
-    if (file.size > 50 * 1024 * 1024) {
-      toast(`${file.name} is bigger than 50MB`, 'error');
-      continue;
-    }
-    videos.push({ kind: 'new', file, url: URL.createObjectURL(file) });
   }
   e.target.value = '';
   renderPreviews();
@@ -342,19 +319,10 @@ $('#image-previews').addEventListener('click', (e) => {
   }
 });
 
-$('#video-previews').addEventListener('click', (e) => {
-  const remove = e.target.closest('[data-remove-video]');
-  if (!remove) return;
-  const [v] = videos.splice(Number(remove.dataset.removeVideo), 1);
-  if (v.kind === 'new') URL.revokeObjectURL(v.url);
-  renderPreviews();
-});
-
 function resetForm() {
   editingId = null;
-  [...images, ...videos].forEach((m) => m.kind === 'new' && URL.revokeObjectURL(m.url));
+  images.forEach((m) => m.kind === 'new' && URL.revokeObjectURL(m.url));
   images = [];
-  videos = [];
   coverIndex = 0;
   const form = $('#product-form');
   form.reset();
@@ -382,7 +350,6 @@ function startEdit(p) {
   // Drafts without a price: tick "show on website" once a price is typed in.
   form.elements.published.checked = p.published !== false || !p.price;
   images = p.images.map((src) => ({ kind: 'existing', src }));
-  videos = (p.videos || []).map((src) => ({ kind: 'existing', src }));
   $('#form-title').textContent = `Edit: ${p.title}`;
   $('#save-product').textContent = 'Update product';
   $('#cancel-edit').classList.remove('hidden');
@@ -396,7 +363,7 @@ $('#product-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
   $('#product-error').textContent = '';
-  if (!images.length && !videos.length && !confirm('This product has no photos or videos. Save anyway?')) return;
+  if (!images.length && !confirm('This product has no photos. Save anyway?')) return;
   if (Number(form.elements.price.value) <= 0 && form.elements.published.checked) {
     $('#product-error').textContent = 'Please enter a price before showing the product on the website.';
     return;
@@ -413,9 +380,6 @@ $('#product-form').addEventListener('submit', async (e) => {
   newOnes.forEach((i) => fd.append('images', i.file, i.file.name));
   const cover = images[coverIndex];
   if (cover) fd.append('cover', cover.kind === 'existing' ? `existing:${cover.src}` : `new:${newOnes.indexOf(cover)}`);
-
-  fd.append('existingVideos', JSON.stringify(videos.filter((v) => v.kind === 'existing').map((v) => v.src)));
-  videos.filter((v) => v.kind === 'new').forEach((v) => fd.append('videos', v.file, v.file.name));
 
   const btn = $('#save-product');
   btn.disabled = true;
@@ -485,7 +449,7 @@ function renderBanners() {
     banners
       .map(
         (b, i) => `<div class="banner-item ${b.active ? '' : 'off'}">
-      <img src="${esc(safeUrl(b.image))}" alt="Banner ${i + 1}" loading="lazy">
+      <img src="${esc(safeUrl(thumb(b.image, 1000)))}" alt="Banner ${i + 1}" loading="lazy">
       <div class="meta">
         <span class="grow">${b.link ? `Links to: ${esc(b.link)}` : 'No link'}${b.active ? '' : ' · HIDDEN'}</span>
         <button class="btn btn-ghost btn-sm" data-baction="up" data-id="${b._id}" ${i === 0 ? 'disabled' : ''} title="Move up">&uarr;</button>

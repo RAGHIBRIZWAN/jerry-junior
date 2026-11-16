@@ -11,7 +11,6 @@ import { checkCredentials, issueToken, clearToken, requireAdmin } from './auth.j
 import productsRouter from './routes/products.js';
 import ordersRouter from './routes/orders.js';
 import bannersRouter from './routes/banners.js';
-import { mediaRouter } from '../utils/mediaRoute.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -35,7 +34,6 @@ export function createAdminApp() {
         directives: {
           defaultSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-          mediaSrc: ["'self'", 'blob:'],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           upgradeInsecureRequests: null,
@@ -78,14 +76,13 @@ export function createAdminApp() {
   app.use('/admin/api/banners', requireAdmin, bannersRouter);
   app.use('/admin/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
-  // Photos/videos (stored in MongoDB) for previews, and the admin UI itself.
-  app.use(mediaRouter);
+  // The admin UI itself (photos are loaded from Cloudinary).
   app.use(express.static(path.join(here, 'ui'), { index: 'index.html' }));
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
-      const msg = err.code === 'LIMIT_FILE_SIZE' ? 'Files are too big (photos max 5MB, videos max 50MB)' : err.message;
+      const msg = err.code === 'LIMIT_FILE_SIZE' ? 'Photos must be 5MB or smaller' : err.message;
       return res.status(400).json({ error: msg });
     }
     if (err.status === 400 || err.name === 'ValidationError') return res.status(400).json({ error: err.message });

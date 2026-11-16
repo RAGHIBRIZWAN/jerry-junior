@@ -6,8 +6,11 @@ dotenv.config({ quiet: true });
 const required = ['MONGODB_URI', 'VENDOR_WHATSAPP'];
 const missing = required.filter((k) => !process.env[k]);
 if (missing.length) {
-  console.error(`Missing required env vars: ${missing.join(', ')}. Copy .env.example to .env and fill it in.`);
-  process.exit(1);
+  // Thrown (not process.exit) so the Vercel function can report exactly what is missing.
+  throw Object.assign(
+    new Error(`Missing settings: ${missing.join(', ')}. On your laptop add them to backend/.env; on Vercel add them under Settings > Environment Variables.`),
+    { code: 'CONFIG', missing }
+  );
 }
 
 const list = (v) =>

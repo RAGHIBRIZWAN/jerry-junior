@@ -11,7 +11,6 @@ import Order from '../models/Order.js';
 import Banner from '../models/Banner.js';
 import { generateOrderNumber } from '../utils/orderNumber.js';
 import { vendorWhatsappUrl } from '../utils/whatsapp.js';
-import { mediaRouter } from '../utils/mediaRoute.js';
 
 const MAX_ITEMS = 50;
 const MAX_QTY = 20;
@@ -30,7 +29,7 @@ export function createPublicApp() {
 
   app.use(
     helmet({
-      // Product images/videos are loaded by the Vercel site (a different origin).
+      // Allows the website (possibly on another address) to use these responses.
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     })
   );
@@ -54,9 +53,6 @@ export function createPublicApp() {
   );
 
   app.use(express.json({ limit: '50kb' }));
-
-  // Product photos and videos, stored in MongoDB (videos support seeking via Range requests).
-  app.use(mediaRouter);
 
   // Let Vercel's CDN keep read-only answers for a few seconds. Faster pages, fewer database reads.
   // (A product you add or change shows up on the website within about a minute.)
@@ -93,7 +89,7 @@ export function createPublicApp() {
       filter.$or = [{ title: re }, { caption: re }, { category: re }];
     }
     if (category) filter.category = new RegExp(`^${escapeRegex(category)}$`, 'i');
-    const products = await Product.find(filter, { sourceId: 0 }).sort({ createdAt: -1 }).limit(500).lean();
+    const products = await Product.find(filter, { sourceId: 0, videos: 0 }).sort({ createdAt: -1 }).limit(500).lean();
     res.json(products);
   });
 
@@ -104,7 +100,7 @@ export function createPublicApp() {
 
   app.get('/api/products/:id', async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Product not found' });
-    const product = await Product.findOne({ _id: req.params.id, ...VISIBLE }, { sourceId: 0 }).lean();
+    const product = await Product.findOne({ _id: req.params.id, ...VISIBLE }, { sourceId: 0, videos: 0 }).lean();
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
   });

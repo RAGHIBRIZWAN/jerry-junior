@@ -1,4 +1,4 @@
-# Backs up the whole database (products, orders, banners AND all photos/videos) into backend\backups\<date-time>\
+# Backs up the database (products, orders, banners) into backend\backups\<date-time>\
 # Run from the backend folder:   powershell -ExecutionPolicy Bypass -File scripts\backup.ps1
 # Needs MongoDB Database Tools (mongodump): https://www.mongodb.com/try/download/database-tools
 
@@ -13,7 +13,7 @@ $stamp = Get-Date -Format 'yyyy-MM-dd_HHmm'
 $dest = Join-Path $root "backups\$stamp"
 New-Item -ItemType Directory -Force $dest | Out-Null
 
-Write-Host "Dumping database (this includes photos and videos)..."
+Write-Host "Dumping database (products, orders, banners)... Photos are on Cloudinary."
 & mongodump --uri="$uri" --archive="$dest\db.archive.gz" --gzip
 if ($LASTEXITCODE -ne 0) { throw 'mongodump failed' }
 

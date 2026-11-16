@@ -5,11 +5,12 @@
 //
 // Options:
 //   --dry-run              Only show what would be imported (writes import-report.csv). Nothing is saved.
-//   --include-uncaptioned  Also import photos/videos that have no caption (as hidden drafts).
+//   --include-uncaptioned  Also import photos that have no caption (as hidden drafts).
 //   --all-drafts           Import everything hidden; publish each product yourself in the admin panel.
 //   --logo <file>          Use this image as the website logo instead of the latest profile picture.
 //
-// Each post becomes one product. All photos and videos of the post are attached.
+// Each post becomes one product. All photos of the post are uploaded to Cloudinary and attached.
+// Videos are not supported and are skipped (posts that only contain a video are left out).
 // Name, price and sizes are read from the caption. Posts without a price are imported
 // as hidden drafts. Open the admin panel, add the price and click "Publish".
 // Running it again skips posts that were already imported.
@@ -23,15 +24,15 @@ import sharp from 'sharp';
 import config from './config.js';
 import { connectDB } from './db.js';
 import Product from './models/Product.js';
-import { saveProductImage, saveProductVideo } from './utils/images.js';
+import { saveProductImage } from './utils/images.js';
+import { cloudinaryReady } from './utils/cloudinary.js';
 import { parseCaption, fixFacebookText } from './utils/captionParser.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND_PUBLIC = path.resolve(here, '../../frontend/public');
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
-const VIDEO_EXT = new Set(['.mp4', '.mov', '.webm']);
-const isMedia = (uri) => typeof uri === 'string' && (IMAGE_EXT.has(ext(uri)) || VIDEO_EXT.has(ext(uri)));
+const isMedia = (uri) => typeof uri === 'string' && IMAGE_EXT.has(ext(uri));
 const ext = (uri) => path.extname(String(uri).split('?')[0]).toLowerCase();
 const isProfileOrCover = (s) => /profile[\s_-]*pictures?|cover[\s_-]*photos?|profilepictures|coverphotos/i.test(s || '');
 
@@ -172,7 +173,7 @@ posts.sort((a, b) => (a.ts || 0) - (b.ts || 0));
 
 // ---------- build products ----------
 let n = 0;
-const rows = posts.map((p) => {
+const allRows = posts.map((p) => {
   const parsed = parseCaption(p.caption);
   n += 1;
   const files = p.media.map((uri) => ({ uri, file: resolveMedia(uri) }));
@@ -182,15 +183,16 @@ const rows = posts.map((p) => {
     title: parsed.title || `${config.shopName} Article ${String(n).padStart(3, '0')}`,
     published: !flag('--all-drafts') && Boolean(parsed.price),
     images: files.filter((f) => IMAGE_EXT.has(ext(f.uri))),
-    videos: files.filter((f) => VIDEO_EXT.has(ext(f.uri))),
-    missing: files.filter((f) => !f.file).length,
+    missing: files.filter((f) => IMAGE_EXT.has(ext(f.uri)) && !f.file).length,
   };
 });
+const videoOnly = allRows.filter((r) => !r.images.length).length;
+const rows = allRows.filter((r) => r.images.length);
 
 // ---------- report ----------
 const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 const report = [
-  ['status', 'name', 'price', 'sizes', 'category', 'photos', 'videos', 'missing files', 'posted', 'caption'].join(','),
+  ['status', 'name', 'price', 'sizes', 'category', 'photos', 'missing files', 'posted', 'caption'].join(','),
   ...rows.map((r) =>
     [
       r.published ? 'live' : 'draft (no price)',
@@ -199,7 +201,6 @@ const report = [
       r.sizes.join(' / '),
       r.category,
       r.images.length,
-      r.videos.length,
       r.missing,
       r.ts ? new Date(r.ts * 1000).toISOString().slice(0, 10) : '',
       r.caption.replace(/\n/g, ' | '),
@@ -218,10 +219,10 @@ console.table(
     sizes: r.sizes.join(' ').slice(0, 30),
     cat: r.category,
     pics: r.images.length,
-    vids: r.videos.length,
     status: r.published ? 'live' : 'DRAFT',
   }))
 );
+if (videoOnly) console.log(`${videoOnly} post(s) only had a video and were left out (videos are not supported).`);
 console.log('Full details saved to import-report.csv (open it in Excel).');
 
 // ---------- logo ----------
@@ -248,6 +249,10 @@ async function run() {
     console.log('\nDry run: nothing was saved. Remove --dry-run to import.');
     return;
   }
+  if (!cloudinaryReady()) {
+    console.error('Cloudinary is not set up. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET to backend/.env, then run the import again.');
+    process.exit(1);
+  }
   await connectDB();
   let created = 0;
   let skipped = 0;
@@ -267,9 +272,7 @@ async function run() {
           console.warn(`  [photo skipped] ${f.uri}: ${err.message}`);
         }
       }
-      const videos = [];
-      for (const f of r.videos) if (f.file) videos.push(await saveProductVideo(f.file, ext(f.file)));
-      if (!images.length && !videos.length) {
+      if (!images.length) {
         console.warn(`  [skipped] "${r.title}": media files not found in the export`);
         failed++;
         continue;
@@ -282,7 +285,6 @@ async function run() {
         sizes: r.sizes,
         category: r.category,
         images,
-        videos,
         inStock: true,
         published: r.published,
         sourceId: r.id,

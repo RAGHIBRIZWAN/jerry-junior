@@ -13,14 +13,14 @@ for (const [k, v] of Object.entries(defaults)) {
   if (!process.env[k]) process.env[k] = v;
 }
 
-// While developing (npm run dev), forward API and photo requests to the local backend (npm start).
-// On Vercel there is no proxy: /api and /media are served by the serverless function.
+// While developing (npm run dev), forward API requests to the local backend (npm start).
+// On Vercel there is no proxy: /api is served by the serverless function. Photos come from Cloudinary.
 const target = process.env.API_PROXY || 'http://127.0.0.1:5000';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
-    proxy: { '/api': target, '/media': target, '/health': target },
+    proxy: { '/api': target, '/health': target },
   },
 });
