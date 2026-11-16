@@ -29,6 +29,19 @@ function setup() {
   }
 }
 
+/** Turns Cloudinary's errors into a message that says what to do. */
+export function explain(err) {
+  const raw = String(err?.message || err || '');
+  const code = Number(err?.http_code || /\b(\d{3})\b\s*$/.exec(raw)?.[1] || 0);
+  if (code === 401 || /invalid (api )?key|invalid signature|unknown api key/i.test(raw)) {
+    return 'Cloudinary rejected the login. Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in backend/.env (copy them again from the Cloudinary dashboard).';
+  }
+  if (code === 403 || /forbidden|permission/i.test(raw)) {
+    return 'Cloudinary refused the upload: this API key does not have permission to upload. In Cloudinary open Settings > API Keys and use a key with full or Upload permission (or create a new key), then update backend/.env and restart.';
+  }
+  return `Cloudinary upload failed: ${raw}`;
+}
+
 /** Uploads an image buffer into <FOLDER>/<subfolder>. Returns the https address of the stored image. */
 export function uploadImage(buffer, subfolder) {
   setup();
@@ -36,7 +49,7 @@ export function uploadImage(buffer, subfolder) {
     const stream = cloudinary.uploader.upload_stream(
       { folder: `${FOLDER}/${subfolder}`, resource_type: 'image', unique_filename: true, overwrite: false },
       (err, result) => {
-        if (err) return reject(Object.assign(new Error(`Cloudinary upload failed: ${err.message || err}`), { status: 400 }));
+        if (err) return reject(Object.assign(new Error(explain(err)), { status: 400 }));
         resolve(result.secure_url);
       }
     );
